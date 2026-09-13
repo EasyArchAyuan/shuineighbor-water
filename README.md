@@ -99,6 +99,23 @@ logo: { color: null, white: null, colorIsWordmark: false }
 - [ ] 品牌 slogan（现为 `TODO: REAL_SLOGAN`）
 - [ ] ICP 备案号（`company.icp`）
 
+## 发布与版本约定
+
+`CHANGELOG.md` **完全由 semantic-release 维护，不要手工编辑**（新版本发布会把条目插到文件顶部）。
+版本号规则（`.releaserc.json`）：
+
+| commit type | 版本 | 说明 |
+|---|---|---|
+| `feat` | minor | 新功能 |
+| `fix` `perf` `refactor` `revert` `infra` | patch | 修问题 / 重构 / 基础设施 |
+| `docs` `chore` `ci` `style` `test` | **不发版** | 只改文档或流水线时不会出 tag |
+
+约束：
+
+- **不要手改 `package.json` 的 `version`**（由工具写）
+- **commit message 不要带 `(vX.Y.Z)` 后缀**
+- 发布流程：`git commit` → `git push origin main`，其余由 CI 完成
+
 ## 部署
 
 见 `docs/deploy-lighthouse.md`。
