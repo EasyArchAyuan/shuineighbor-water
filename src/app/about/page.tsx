@@ -50,6 +50,11 @@ export default function AboutPage() {
                 {company.city}人喝的水，我们想做得更简单一点。
               </p>
             </RevealItem>
+            <RevealItem>
+              <p className="mt-4 text-[15px] tracking-wide text-[var(--accent-text)] sm:text-[16px]">
+                「{company.slogan}」
+              </p>
+            </RevealItem>
           </Reveal>
         </section>
 

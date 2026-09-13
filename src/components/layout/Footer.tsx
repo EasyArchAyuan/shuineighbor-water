@@ -23,10 +23,9 @@ export function Footer() {
             >
               <Logo variant="white" height={40} />
             </Link>
-            <p className="mt-5 text-[clamp(26px,3.6vw,40px)] font-medium leading-tight tracking-tight text-[var(--on-dark)] sm:mt-6">
-              新一代，
-              <br />
-              饮水生活品牌。
+            {/* 品牌 slogan（取自 src/data/company.ts，官方《品牌视觉规范手册》V1.0 口径） */}
+            <p className="mt-5 text-[clamp(24px,3.2vw,36px)] font-medium leading-tight tracking-tight text-[var(--on-dark)] sm:mt-6">
+              {company.slogan}
             </p>
             <p className="mt-3 text-[14px] leading-relaxed text-[var(--on-dark-soft)] sm:mt-4">
               {company.legalName} · {site.parent.name}旗下 · {company.city}本地配送

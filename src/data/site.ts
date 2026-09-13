@@ -56,8 +56,10 @@ export const site = {
   },
 
   logo: {
-    color: null,
-    white: null,
+    // 来自官方物料库：Logo 主标（邻里标签）与金色艺术字，均已抠成透明 PNG
+    color: "/brand/logo.png",
+    white: "/brand/logo-white.png",
+    // 徽章内含品牌名但字号偏小，小尺寸下仍需要在右侧补一行清晰文字
     colorIsWordmark: false,
   } as LogoAssets,
 } as const;

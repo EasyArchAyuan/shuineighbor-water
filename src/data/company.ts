@@ -18,8 +18,8 @@ export const company = {
   brandName: "水邻居",
   /** 品牌定位语（已公开使用） */
   tagline: "新一代饮水生活品牌。",
-  /** 待定：品牌 slogan 尚未确定，由用户提供后再填 */
-  slogan: "TODO: REAL_SLOGAN",
+  /** 品牌 slogan（取自官方《水邻居品牌视觉规范手册》V1.0 封面） */
+  slogan: "简单生活·纯净相伴",
   /** 产品法定类别，全站统一引用此常量 */
   waterType: "饮用天然水",
   establishedYear: 2020,

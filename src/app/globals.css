@@ -2,7 +2,15 @@
 
 /* =============================================================
    水邻居官网 — Design Tokens
-   视觉基调：Apple 式极简、soft natural light、低饱和蓝绿为主色
+   视觉基调：Apple 式极简、soft natural light
+
+   ⚠️ 品牌色取自官方《水邻居品牌视觉规范手册》V1.0（2026）05-03 Color System：
+        主色   中蓝色  #3D719F
+        辅助色 浅绿色  #7EB188
+        背景色 暖白色  #FAF8F3
+      使用建议：「以中蓝色为主，浅绿色为辅，暖白色为底，
+      整体清新、自然、温暖，传递邻里般的品牌气质。」
+      改色请先回查该规范，不要凭感觉调。
    ============================================================= */
 
 :root {
@@ -13,29 +21,30 @@
     "PingFang SC", "Noto Sans SC", "Microsoft YaHei", "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
 
-  /* —— Brand 水邻居：低饱和蓝绿为品牌主色
+  /* —— 主色：中蓝色 #3D719F（规范「品牌标准色 · 主色」）
      --brand        品牌实色：按钮底色 / focus ring / 链接 hover
-     --brand-bright 品牌亮色：极小面积装饰
-     --brand-deep   深色面（Footer / 深底 Section）与 logo 藏青一致 */
-  --brand: #17786f;
-  --brand-bright: #63c9c1;
-  --brand-deep: #0a2540;
+     --brand-bright 主色提亮，极小面积装饰
+     --brand-deep   主色加深，用于深色面（Footer / 深底 Section） */
+  --brand: #3d719f;
+  --brand-bright: #5b93c4;
+  --brand-deep: #24435f;
 
-  /* —— 品牌辅助色（浅底标签、提示色） */
-  --accent: #63c9c1;
-  --accent-text: #17786f;
-  --accent-tint: #edf7f5;
+  /* —— 辅助色：浅绿色 #7EB188（规范「辅助色」）
+     --accent-text 为在浅底上达到 4.5:1 对比度的加深版 */
+  --accent: #7eb188;
+  --accent-text: #4e7f58;
+  --accent-tint: #edf4ee;
 
-  /* —— 背景与中性 */
-  --bg: #f7f8f5;
-  --bg-alt: #eef3f1;
-  --ink: #0a1a2a;
-  --ink-soft: #4a545a;
-  --ink-muted: #8a9298;
-  --on-dark: #f2f5f4;
-  --on-dark-soft: rgba(242, 245, 244, 0.66);
-  --hairline: rgba(10, 26, 42, 0.1);
-  --hairline-strong: rgba(10, 26, 42, 0.18);
+  /* —— 背景与中性：底色用规范「背景色 暖白色 #FAF8F3」 */
+  --bg: #faf8f3;
+  --bg-alt: #f2f0e9;
+  --ink: #1e2e3a;
+  --ink-soft: #4d5860;
+  --ink-muted: #8b9399;
+  --on-dark: #f7f4ec;
+  --on-dark-soft: rgba(247, 244, 236, 0.68);
+  --hairline: rgba(30, 46, 58, 0.1);
+  --hairline-strong: rgba(30, 46, 58, 0.18);
 
   /* —— 字号（响应式 clamp） */
   --fs-display-hero: clamp(42px, 7.4vw, 96px);
