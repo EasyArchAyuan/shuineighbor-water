@@ -38,11 +38,44 @@
   由母站仓库 `meihao-water` 维护；本仓库没有 `infra/Caddyfile`、没有 caddy job。
 - 默认服务器拉取模式**不需要任何 Secret**；只有 `DEPLOY_MODE=ssh` 才需要 SSH 相关。
 
-## 视觉
-- Apple 式极简，soft natural light。品牌色为低饱和蓝绿：`--brand:#17786f`、
-  `--brand-bright/--accent:#63c9c1`、`--accent-tint:#edf7f5`；深色面 `--brand-deep:#0a2540`（与 logo 藏青一致）。
-- 注意：logo 本身是**藏青 + 金**，与站点主色（蓝绿）不一致——站点按用户决定沿用蓝绿，属有意选择。
+## 视觉（以官方规范为准）
+- **品牌色取自官方《水邻居品牌视觉规范手册》V1.0（2026）05-03 Color System**，不要凭感觉调：
+  - 主色 **中蓝色 `#3D719F`** → `--brand`
+  - 辅助色 **浅绿色 `#7EB188`** → `--accent`（浅底文字用加深版 `--accent-text:#4E7F58`，保证 4.5:1）
+  - 背景色 **暖白色 `#FAF8F3`** → `--bg`；深色面 `--brand-deep:#24435F`（主色加深）
+  - 规范使用建议：「以中蓝色为主，浅绿色为辅，暖白色为底」
+- **Logo**：由物料库提取，已抠成透明 PNG 并压到 17KB 总计
+  - `public/brand/logo.png` = Logo 主标（邻里标签徽章 +「✓今日已送达」），用于浅底
+  - `public/brand/logo-white.png` = 金色艺术字，用于深底（页脚）
+  - 源头在 `D:\剪辑素材\美好商贸\宣传物料\水邻居\`（同一个 `.ai` 源文件里有 10L 桶标矢量）
+- **slogan「简单生活·纯净相伴」**（规范封面口径），存于 `company.slogan`，用于页脚、`/about`、JSON-LD、OG 图。
+- 注意：用户最初给我的那张 logo JPG（藏青+金、带水印）来自设计素材模板站，**不是**最终品牌资产；已改用物料库里的规范版本。
+
+## ⚠️ 物料库里的合规雷区（不要对外使用）
+- `水邻居桶装水促销封面图.png` / `促销活动长图.png`：画面写「**打垮廊坊 怡宝价格天花板！32桶仅460元**」
+  → 点名竞品 + 价格对比，违反品牌合规红线。
+- `【水邻居18.9L】PREMIUM PURIFIED WATER`：英文 **PURIFIED WATER（纯净水）** 与本品类「饮用天然水」冲突，不可直接使用。
+
+## 域名（现用）
+- `linju.meihaowater.site`（meihaowater.site 子域名）。全站域名只在 `src/data/site.ts` 的 `domain`/`url` 两处定义。
+- ⚠️ **DNSPod 容易填错**：DNSPod 的「主机记录」只填 **`linju`**（子域名前缀），
+  填成完整域名会创建出 `linju.meihaowater.site.meihaowater.site`。用
+  `wget -qO- "https://dns.alidns.com/resolve?name=<域名>&type=A"` 在服务器上可直接验证。
+
 
 ## 素材待补（站内已用占位，不阻塞上线）
-logo（彩版+反白版）｜18.9L 产品图｜水源地配图｜公众号二维码｜门店地图｜品牌 slogan（`TODO: REAL_SLOGAN`）｜ICP 备案号。
+logo **已完成**（见上「视觉」）。其余待补：18.9L 产品图｜水源地配图｜公众号二维码｜门店地图｜ICP 备案号。
 素材清单与替换方式见 `README.md`。
+
+## 部署现状（2026-09-13）
+- 仓库 `EasyArchAyuan/shuineighbor-water`（public，HTTPS remote）。远程分支：`main` + `dist`（产物）。
+- CI 首跑成功：自动发 **v1.0.0**（tag + Release）、产物推 `dist`。
+  **说明新仓库的 Workflow permissions 已可写**（母站当初需要手动开）。
+- 服务器已就绪：`/var/www/shuineighbor/out`（3.3M，路由齐全）、
+  `/usr/local/bin/shuineighbor-pull.sh`（82 行）、root crontab **两行**（mhsy + shuineighbor，已复核）。
+  手动拉取验证通过：`deployed 8898e54b…`。
+- ⛔ **唯一剩余阻塞**：`linju.meihaowater.site` 的 DNSPod 记录填错（见上「域名」），
+  修好后才能给 Caddy 加站点块（否则 ACME 签发失败）。
+- Caddy 块 2 的内容已规划：`linju.meihaowater.site { root * /var/www/shuineighbor/out; ... }`，
+  追加进**母站仓库** `infra/Caddyfile`，用 raw 拉取 + `caddy validate` + 备份 + `cp` + `systemctl reload caddy` 应用。
+
