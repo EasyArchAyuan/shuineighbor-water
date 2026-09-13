@@ -1,0 +1,10 @@
+# 统一行尾：仓库内一律 LF。
+# 重要：infra/*.sh 会被服务器通过 raw.githubusercontent.com 拉取后**直接 bash 执行**，
+# 若带 CRLF 会在服务器上解释出错（\r 会被当成命令的一部分）。锁成 LF 可彻底避免。
+* text=auto eol=lf
+*.sh text eol=lf
+*.bat text eol=crlf
+*.png binary
+*.jpg binary
+*.ico binary
+*.svg text eol=lf
