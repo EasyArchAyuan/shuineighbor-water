@@ -1,0 +1,269 @@
+name: CI/CD
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# 顶层权限最小化；需要写权限的 job 各自覆盖。
+permissions:
+  contents: read
+
+jobs:
+  # ───────────────────────────────────────────────────────────────
+  # 1) CI：lint + 静态导出构建 + 上传产物
+  # ───────────────────────────────────────────────────────────────
+  build:
+    name: Lint & Build
+    runs-on: ubuntu-latest
+    concurrency:
+      group: ci-build-${{ github.ref }}
+      cancel-in-progress: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: "Build (static export -> out/)"
+        run: npm run build
+
+      - name: Assert static export
+        run: |
+          set -euo pipefail
+          test -f out/index.html
+          test -f out/robots.txt
+          du -sh out
+
+      - name: Upload site artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: site-out
+          path: out
+          retention-days: 30
+          if-no-files-found: error
+
+  # ───────────────────────────────────────────────────────────────
+  # 2) 发版：semantic-release（版本号自动推断 → tag → GitHub Release）
+  #    ⚠️ 必须先完成 v1.0.6–v1.0.11 的 tag 回填，否则会算错基线版本。
+  # ───────────────────────────────────────────────────────────────
+  release:
+    name: Release
+    needs: build
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: release
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Checkout (full history for tag analysis)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          # 注意：不要设 persist-credentials: false —— semantic-release 的推送前检查
+          # （以及 @semantic-release/git 的 git push）依赖 checkout 保留的凭据。
+          persist-credentials: true
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Configure git identity
+        # CI runner 默认没有 git user，@semantic-release/git 的 commit 会因此失败
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Diagnose token permissions
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          echo "token length: ${#GH_TOKEN}"
+          curl -sS -o /dev/null -w 'repo API status: %{http_code}\n' \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            "https://api.github.com/repos/${{ github.repository }}"
+          PERMS=$(curl -sS -H "Authorization: Bearer ${GH_TOKEN}" \
+            "https://api.github.com/repos/${{ github.repository }}" \
+            | tr ',' '\n' | grep -E '"(push|admin|maintain)"' | tr '\n' ' ' || true)
+          echo "token repo perms: ${PERMS}"
+          echo "::warning title=TOKEN_PERMS::${PERMS}"
+
+      - name: semantic-release
+        env:
+          # 若仓库默认 GITHUB_TOKEN 无推送权，可建 fine-grained PAT 存为 RELEASE_TOKEN
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
+          DEBUG: semantic-release:*
+        run: |
+          set +e
+          npx semantic-release > /tmp/semrel.log 2>&1
+          RC=$?
+          echo '===== semantic-release log ====='
+          cat /tmp/semrel.log
+          echo '===== end ====='
+          if [ "$RC" -ne 0 ]; then
+            # 直接取末尾若干行（grep 匹配不到会导致注解消息为空，空消息不渲染）
+            MSG=$(tail -25 /tmp/semrel.log | tr '\n' '|' | cut -c1-900)
+            echo "::error title=semantic-release_failed::${MSG}"
+          fi
+          exit $RC
+
+  # ───────────────────────────────────────────────────────────────
+  # 3) 部署：把构建产物 rsync 到 Lighthouse（staging + 原子切换）
+  #    服务器无需 git / Node，彻底绕开「服务器连不上 github」的问题。
+  # ───────────────────────────────────────────────────────────────
+  deploy:
+    name: Deploy → Lighthouse (SSH)
+    needs: build
+    # 默认走「服务器主动拉」；只有显式设 DEPLOY_MODE=ssh 才走 SSH 直推（Runner 到 22 端口不通）
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.DEPLOY_MODE == 'ssh'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download built site
+        uses: actions/download-artifact@v4
+        with:
+          name: site-out
+          path: out
+
+      # 临时排障：确认 GitHub Runner 能否连通服务器 22 端口（跨境网络有时不通）
+      - name: Probe connectivity
+        env:
+          SSH_HOST: ${{ vars.SSH_HOST }}
+          SSH_PORT: ${{ vars.SSH_PORT || '22' }}
+        run: |
+          if timeout 20 bash -c "</dev/tcp/${SSH_HOST}/${SSH_PORT}" 2>/dev/null; then
+            echo "::notice title=TCP_PROBE::OPEN ${SSH_HOST}:${SSH_PORT}"
+          else
+            echo "::notice title=TCP_PROBE::UNREACHABLE ${SSH_HOST}:${SSH_PORT} —— Runner 连不上服务器 22 端口"
+          fi
+
+      - name: Configure SSH
+        uses: ./.github/actions/ssh-setup
+        with:
+          ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
+          ssh_host: ${{ vars.SSH_HOST }}
+          ssh_port: ${{ vars.SSH_PORT || '22' }}
+
+      - name: Deploy (staging + atomic swap)
+        uses: ./.github/actions/deploy-site
+        with:
+          ssh_host: ${{ vars.SSH_HOST }}
+          ssh_user: ${{ vars.SSH_USER }}
+          ssh_port: ${{ vars.SSH_PORT || '22' }}
+
+      - name: Smoke test (public)
+        run: |
+          set -euo pipefail
+          SITE=https://linju.meihaowater.site
+          for u in "$SITE/" "$SITE/products/" "$SITE/source/" "$SITE/about/" "$SITE/contact/"; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "$u")
+            echo "$u -> $code"
+            test "$code" = "200"
+          done
+          # 关键内容存在性
+          curl -fsS "$SITE/" | grep -q '13393067179'
+          curl -fsS "$SITE/" | grep -q '水邻居'
+          curl -fsS "$SITE/contact/" | grep -q '水邻居'
+          # 母品牌背书（页脚）+ 法律实体
+          curl -fsS "$SITE/" | grep -q '美好水业'
+          curl -fsS "$SITE/" | grep -q '廊坊市美好商贸有限公司'
+          # 合规断言：本品类为「饮用天然水」，全站不得出现「矿泉水」
+          for page in / /products/ /source/ /about/ /contact/; do
+            if curl -fsS "$SITE$page" | grep -q '矿泉水'; then
+              echo "::error title=compliance::${page} 出现「矿泉水」字样，违反品类口径"; exit 1
+            fi
+          done
+          # 缓存策略（HTML 不应 immutable）
+          curl -sI "$SITE/" | grep -iq '^cache-control: no-cache'
+
+  # ───────────────────────────────────────────────────────────────
+  # 3') 发布产物到 dist 分支 —— 服务器主动拉取（默认部署模式）
+  #     GitHub Runner 到服务器 22 端口不通（TCP_PROBE: UNREACHABLE），
+  #     故改为「服务器拉」：CI 打包 out/ → 推 dist 分支 →
+  #     服务器定时任务从 raw.githubusercontent.com 拉取并原子切换。
+  # ───────────────────────────────────────────────────────────────
+  publish-dist:
+    name: Publish dist (server pulls)
+    needs: build
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.DEPLOY_MODE != 'ssh'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download built site
+        uses: actions/download-artifact@v4
+        with:
+          name: site-out
+          path: out
+
+      - name: Pack site
+        run: |
+          set -euo pipefail
+          test -f out/index.html
+          tar -czf /tmp/site.tar.gz -C out .
+          # 先发布一个 64 字节的 sha 文件：服务器据此判断是否有更新，避免每次都下载整包
+          sha256sum /tmp/site.tar.gz | cut -d' ' -f1 > /tmp/site.sha256
+          cp /tmp/site.sha256 /tmp/sha256.txt
+          ls -lh /tmp/site.tar.gz
+          cat /tmp/site.sha256
+
+      - name: Push to dist branch (single commit, force)
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch --orphan dist_tmp
+          git rm -rf . >/dev/null 2>&1 || true
+          cp /tmp/site.tar.gz site.tar.gz
+          cp /tmp/sha256.txt site.sha256
+          git add -f site.tar.gz site.sha256
+          git commit -m "chore(dist): build ${GITHUB_SHA::7}"
+          git branch -M dist
+          git push -f origin dist
+          echo "::notice title=dist_published::$(du -h /tmp/site.tar.gz | cut -f1) -> dist @ ${GITHUB_SHA::7}"
+
+  # ───────────────────────────────────────────────────────────────
+  # 注：本站没有 caddy job。
+  # /etc/caddy/Caddyfile 是服务器级共享配置（同一台 Lighthouse 上还有
+  # 「美好水业」站点块），因此归 **美好水业仓库** meihao-water 统一维护，
+  # 本仓库不包含 infra/Caddyfile，避免两个仓库各持一份导致配置漂移。
+  # 新增/修改站点块后由人工在服务器上 apply：
+  #   wget -qO- <raw Caddyfile> | dd of=/tmp/Caddyfile.new
+  #   caddy validate --config /tmp/Caddyfile.new
+  #   cp /etc/caddy/Caddyfile /etc/caddy/Caddyfile.bak.$(date +%s)
+  #   cp /tmp/Caddyfile.new /etc/caddy/Caddyfile && systemctl reload caddy
+  # ───────────────────────────────────────────────────────────────

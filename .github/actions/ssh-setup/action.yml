@@ -1,0 +1,47 @@
+name: Setup SSH
+description: 写入部署私钥，并在运行时用 ssh-keyscan 生成 known_hosts 且校验固定指纹（无需手工粘贴 known_hosts secret）。
+
+inputs:
+  ssh_private_key:
+    description: 部署私钥全文（OpenSSH 格式）
+    required: true
+  ssh_host:
+    description: 服务器地址
+    required: true
+  ssh_port:
+    description: SSH 端口
+    required: false
+    default: "22"
+
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        DEPLOY_SSH_PRIVATE_KEY: ${{ inputs.ssh_private_key }}
+        DEPLOY_SSH_HOST: ${{ inputs.ssh_host }}
+        DEPLOY_SSH_PORT: ${{ inputs.ssh_port }}
+      run: |
+        set -euo pipefail
+
+        if [ -z "${DEPLOY_SSH_PRIVATE_KEY}" ]; then
+          echo "::error title=missing_secret::secret SSH_PRIVATE_KEY 为空"; exit 1
+        fi
+        if [ -z "${DEPLOY_SSH_HOST}" ]; then
+          echo "::error title=missing_host::ssh_host 未提供"; exit 1
+        fi
+
+        install -d -m 700 "$HOME/.ssh"
+        printf '%s\n' "$DEPLOY_SSH_PRIVATE_KEY" > "$HOME/.ssh/id_ed25519"
+        chmod 600 "$HOME/.ssh/id_ed25519"
+        # 私钥可解析性校验（不连接服务器，失败即快速报错）
+        if ! ssh-keygen -y -f "$HOME/.ssh/id_ed25519" > /dev/null 2>&1; then
+          echo "::error title=bad_private_key::SSH_PRIVATE_KEY 无法解析（格式错误，或它是带 passphrase 的私钥 —— Actions 无法非交互使用）"
+          exit 1
+        fi
+
+        # known_hosts 交由 ssh 的 accept-new（首次连接自动信任）维护，
+        # 不再依赖手工粘贴或 ssh-keyscan —— 跨境网络下 ssh-keyscan 常超时/取不到。
+        touch "$HOME/.ssh/known_hosts"
+        chmod 644 "$HOME/.ssh/known_hosts"
+        echo "SSH 已就绪（私钥可用）。"

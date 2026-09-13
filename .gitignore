@@ -1,0 +1,74 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+#
+# 原则：仓库只保存「源码 + 必要静态资源 + 文档 + 项目记忆」。
+#       构建产物、依赖、本地临时文件、密钥 一律不进 git。
+
+# ── 依赖 ────────────────────────────────────────────────
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# ── 构建产物 / 缓存 ─────────────────────────────────────
+/coverage
+/.next/
+/out/
+/build
+.turbo
+
+# ── 部署产物（dist 分支拉取用，本地不要提交）────────────
+/site.tar.gz
+/site.sha256
+
+# ── 环境变量 / 密钥 ─────────────────────────────────────
+.env*
+*.pem
+*.key
+*.p12
+
+# ── 日志与本地临时文件 ──────────────────────────────────
+logs/
+*.log
+*.tmp
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# ── TypeScript ──────────────────────────────────────────
+*.tsbuildinfo
+# next-env.d.ts 由 next 自动生成
+next-env.d.ts
+
+# ── 部署平台 ────────────────────────────────────────────
+.vercel
+
+# ── WorkBuddy ───────────────────────────────────────────
+# 忽略工具运行态，仅保留项目记忆与项目级技能。
+# 注意：必须先忽略目录内容（.workbuddy/*）才能用 ! 重新包含子目录；
+# 写成 `.workbuddy/` 会整目录忽略，后续的 ! 规则不会生效。
+.workbuddy/*
+!.workbuddy/memory/
+!.workbuddy/skills/
+
+# WorkBuddy Sites 部署追踪文件（每个 app 一个，重新部署会重新生成）
+.wbapp_*.genie
+
+# ── 操作系统 ────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+ehthumbs.db
+desktop.ini
+$RECYCLE.BIN/
+
+# ── 编辑器 ──────────────────────────────────────────────
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.swp
+*.swo
