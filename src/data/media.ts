@@ -12,6 +12,17 @@
  * 待素材到位后填入。素材来源计划见项目 README。
  */
 
+/**
+ * 静态图片托管在腾讯云 COS（桶 meihao-1256962045 / ap-beijing / 公共读）。
+ *
+ * 约定：
+ * - `hero/`、`home/` 大图统一走 CDN 前缀，不占仓库体积。
+ *   这些素材与母站（美好水业官网）为同一批文件，**复用同一组 COS 对象**，不重复存储。
+ * - `brand/` 小文件保留在 `public/` 本地。
+ * - 切换自定义域名 / CDN 时只改这一个常量。
+ */
+export const CDN = "https://img.meihaowater.site";
+
 export type MediaItem = {
   id: string;
   src: string | null;
@@ -45,7 +56,7 @@ export const media: Record<string, MediaItem> = {
   // ── 首页 Hero ───────────────────────────────────────────
   "hero-main": {
     id: "hero-main",
-    src: "/hero/city-water.jpg",
+    src: `${CDN}/hero/city-water.jpg`,
     alt: "清晨的城市社区街景，前方一杯清水，路边停着载满桶装水的配送车",
     ratio: "4/5",
     note: "Hero 大图：水的通透感 + 城市生活感。移动端 4/5，>=640px 由调用方传 ratioSm=16/9。",
@@ -63,7 +74,7 @@ export const media: Record<string, MediaItem> = {
   },
   "product-disposable": {
     id: "product-disposable",
-    src: "/home/disposable-hero.jpg",
+    src: `${CDN}/home/disposable-hero.jpg`,
     alt: "浅色渐变背景上的桶装水产品，四周大量留白",
     ratio: "16/9",
     note: "10L 一次性桶装水主视觉：产品单品，纯背景 + 强留白。",
@@ -83,7 +94,7 @@ export const media: Record<string, MediaItem> = {
   // ── 场景图（沿用母站中性素材）───────────────────────────
   "whatwedo-01": {
     id: "whatwedo-01",
-    src: "/home/whatwedo-01.jpg",
+    src: `${CDN}/home/whatwedo-01.jpg`,
     alt: "家庭厨房里的饮水机与桶装水，晨光洒在台面上",
     ratio: "4/3",
     note: "使用场景 · 家庭饮水。",
@@ -91,7 +102,7 @@ export const media: Record<string, MediaItem> = {
   },
   "whatwedo-02": {
     id: "whatwedo-02",
-    src: "/home/whatwedo-02.jpg",
+    src: `${CDN}/home/whatwedo-02.jpg`,
     alt: "办公室茶水间的饮水机与整齐摆放的白色水杯",
     ratio: "4/3",
     note: "使用场景 · 办公室饮水。",
@@ -99,7 +110,7 @@ export const media: Record<string, MediaItem> = {
   },
   "whatwedo-03": {
     id: "whatwedo-03",
-    src: "/home/whatwedo-03.jpg",
+    src: `${CDN}/home/whatwedo-03.jpg`,
     alt: "会议室中为每位与会者备好的饮用水",
     ratio: "4/3",
     note: "使用场景 · 会议用水。",
@@ -107,7 +118,7 @@ export const media: Record<string, MediaItem> = {
   },
   "whatwedo-04": {
     id: "whatwedo-04",
-    src: "/home/whatwedo-04.jpg",
+    src: `${CDN}/home/whatwedo-04.jpg`,
     alt: "整桶塑封的一次性桶装水特写",
     ratio: "4/3",
     note: "使用场景 · 一次性桶装水。",
@@ -115,7 +126,7 @@ export const media: Record<string, MediaItem> = {
   },
   "home-life": {
     id: "home-life",
-    src: "/home/home-life.jpg",
+    src: `${CDN}/home/home-life.jpg`,
     alt: "家中客厅一角，饮水机旁的小桌上放着水杯与书",
     ratio: "4/5",
     note: "家庭场景主图：厨房 / 客厅 / 饮水机，暖光。",
@@ -123,7 +134,7 @@ export const media: Record<string, MediaItem> = {
   },
   "office-space": {
     id: "office-space",
-    src: "/home/office-space.jpg",
+    src: `${CDN}/home/office-space.jpg`,
     alt: "可俯瞰城市天际线的现代办公空间与茶水区",
     ratio: "3/2",
     note: "办公与商务场景主图。",
@@ -131,7 +142,7 @@ export const media: Record<string, MediaItem> = {
   },
   "brand-mood": {
     id: "brand-mood",
-    src: "/home/shuineighbor.jpg",
+    src: `${CDN}/home/shuineighbor.jpg`,
     alt: "浅薄荷绿色的随身水壶置于明亮台面，旁有绿植与毛巾",
     ratio: "4/5",
     note: "品牌气质图：年轻 / 轻盈 / 低饱和蓝绿氛围。用于「更年轻」等特性表达。",
