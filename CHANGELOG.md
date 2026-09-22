@@ -1,3 +1,9 @@
+## [1.0.1](https://github.com/EasyArchAyuan/shuineighbor-water/compare/v1.0.0...v1.0.1) (2026-09-22)
+
+### 基础设施
+
+* **media:** 大图迁移至腾讯云 COS（img.meihaowater.site） ([4c0de7f](https://github.com/EasyArchAyuan/shuineighbor-water/commit/4c0de7f4808bbc3d032fbf059f17a320ff481c8f))
+
 ## 1.0.0 (2026-09-13)
 
 ### 新功能
